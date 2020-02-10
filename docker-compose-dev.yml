@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  db:
+    image: mariadb:10.4.11
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - 8083:3306
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+
+  redis:
+    image: redis:latest
+    command: redis-server
+    ports:
+      - "6379:6379"
+    volumes:
+      - "redis:/data"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    environment:
+      - RAILS_SERVE_STATIC_FILES=true
+    volumes:
+      - .:/byndr
+    ports:
+      - "3000:3000"
+    links:
+      - db
+      - redis
+      - mailcatcher
+
+  sidekiq:
+    build: .
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/byndr
+    env_file:
+      - .env
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1080:1080"
+
+volumes:
+  mysql_data:
+    driver: local
+  redis:
