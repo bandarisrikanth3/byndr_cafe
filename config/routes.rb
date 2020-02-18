@@ -1,7 +1,12 @@
 Rails.application.routes.draw do
   devise_for :users
+  
+  resources :chatrooms do
+    resource :chatroom_users
+    resources :messages
+  end
 
-  root 'welcome#index'
-  resources :welcome, only: [:index] 
+  resources :direct_messages
+  root to: "chatrooms#index"
 
 end
